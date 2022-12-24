@@ -2,7 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* @import url('https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;600;700&display=swap'); */
+/* @import url('https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;600;700&family=Source+Sans+Pro:wght@400;600;700&display=swap'); */
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700&display=swap');
 
 body {
-  background: #012b63;
+  /* font-family: 'Chivo Mono', monospace; */
+  /* font-family: 'Source Sans Pro', sans-serif; */
+  font-family: 'Kanit', sans-serif;
+
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(4, 4, 128, 1) 2%, rgba(4, 4, 128, 1) 38%, rgba(0, 0, 0, 1) 100%);
 }
