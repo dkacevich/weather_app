@@ -11,7 +11,7 @@ export const fetchWeather = async ({lat, lon}) => {
 }
 
 export const fetchCoordinates = async (cityName) => {
-    const res = await axios.get(`http://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=5&appid=${GEO_API_KEY}`);
+    const res = await axios.get(`https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=5&appid=${GEO_API_KEY}`);
     return res.data;
 }
 
