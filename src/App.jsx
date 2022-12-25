@@ -101,7 +101,7 @@ const App = () => {
         setLoading(true)
 
         await handleFetching(city)
-        manualSort()
+        if (activeSort) manualSort()
 
         setLoading(false)
     }
