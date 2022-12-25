@@ -17,26 +17,32 @@ const App = () => {
 
 
     useEffect(() => {
-
         // fetch Location first, then weather for this location
         Promise.all(
-            cities.map(async (city) => {
-                const location = await fetchCoordinates(city)
-                const { name, lat, lon } = location[0]
-                const data = await fetchWeather({ lat, lon })
-
-                const min = await data.daily.temperature_2m_min
-                const max = await data.daily.temperature_2m_max
-                const times = await data.daily.time
-
-                setTimes(times)
-                setCityData(state => [...state, { name, min, max }])
-            })
+            cities.map(handleFetching)
         ).then(() => {
             setLoading(false)
         })
 
     }, [])
+
+
+    const handleFetching = async (city) => {
+        try {
+            const location = await fetchCoordinates(city)
+            const { name, lat, lon } = location[0]
+            const data = await fetchWeather({ lat, lon })
+
+            const min = await data.daily.temperature_2m_min
+            const max = await data.daily.temperature_2m_max
+            const times = await data.daily.time
+
+            setTimes(times)
+            setCityData(state => [...state, { name, min, max }])
+        } catch (error) {
+            console.log('error')
+        }
+    }
 
 
     // Sort Function
@@ -60,8 +66,20 @@ const App = () => {
         setCityData(state => [...state.sort((a, b) => a[activeSort][time] - b[activeSort][time])])
     }
 
+
+
+
+    const handlePrefetch = async (city) => {
+        setLoading(true)
+
+        await handleFetching(city)
+
+        setLoading(false)
+    }
+
     const content = (
         <>
+            <CityForm handlePrefetch={handlePrefetch} />
             <Table
                 setActiveSort={setActiveSort}
                 activeSort={activeSort}
@@ -86,6 +104,39 @@ const App = () => {
     )
 }
 
+const CityForm = ({ handlePrefetch }) => {
+    const [value, setValue] = useState('')
+    const [error, setError] = useState(false)
+
+    const handleSubmit = (e) => {
+        e.preventDefault()
+        if (value === '') setError(true)
+        else {
+            handlePrefetch(value)
+            setValue('');
+        }
+    }
+
+    const handleInput = (e) => {
+        setError(false);
+        setValue(e.target.value)
+    }
+
+    const erorrClass = error ? 'border-red-600' : null
+
+    return (
+        <form onSubmit={handleSubmit} className='flex gap-4'>
+            <input
+                placeholder="New-York"
+                className={`text-black py-2 px-3 outline-none rounded-lg transition-all border-4 ${erorrClass}`}
+                type="text"
+                value={value}
+                onChange={handleInput}
+            />
+            <button className="bg-white rounded-lg text-black py-1 px-6 hover:bg-blue-900 hover:text-white border-2 hover:border-white  transition-all">Add</button>
+        </form>
+    )
+}
 
 // Date picker Component
 const DatePicker = ({ times, handleTimeSet, timeIndex }) => {
@@ -152,7 +203,7 @@ const Table = ({ cityData, handleSort, removeCity, time, activeSort, setActiveSo
                     array.map((item, i) => {
                         const name = item[0];
                         const label = item[1];
-                              
+
                         return (
                             <button key={i} onClick={() => handleSort(label)} className={i === 1 ? centerClassName : className}>
                                 {name}
