@@ -69,7 +69,8 @@ const App = () => {
     }
 
     // Sorting after change date or add new city
-    const manualSort = () => {
+    const manualSort = (time) => {
+
         const label = activeSort;
         if (sortReverse) {
             if (label === 'name') {
@@ -94,14 +95,14 @@ const App = () => {
     // Set time and keep sorting order
     const handleTimeSet = (time) => {
         setTime(time)
-        manualSort()
+        if (activeSort) manualSort(time)
     }
 
     const handlePrefetch = async (city) => {
         setLoading(true)
 
         await handleFetching(city)
-        if (activeSort) manualSort()
+        if (activeSort) manualSort(time)
 
         setLoading(false)
     }
