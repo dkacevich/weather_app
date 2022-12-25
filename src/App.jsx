@@ -13,6 +13,7 @@ const App = () => {
     const [time, setTime] = useState(0)
     const [times, setTimes] = useState([])
     const [activeSort, setActiveSort] = useState('');
+    const [sortReverse, setSortReverse] = useState(false)
     const [loading, setLoading] = useState(true)
 
 
@@ -30,7 +31,7 @@ const App = () => {
     const handleFetching = async (city) => {
         try {
             const location = await fetchCoordinates(city)
-            const { name, lat, lon } = location[0]
+            const { name, lat, lon, country } = location[0]
             const data = await fetchWeather({ lat, lon })
 
             const min = await data.daily.temperature_2m_min
@@ -38,20 +39,50 @@ const App = () => {
             const times = await data.daily.time
 
             setTimes(times)
-            setCityData(state => [...state, { name, min, max }])
+            setCityData(state => [...state, { name, min, max, country}])
         } catch (error) {
             console.log('error')
         }
     }
 
 
-    // Sort Function
+    // Main sort Function
     const handleSort = (label) => {
-        setActiveSort(label)
-        if (label === 'name') {
-            setCityData(state => ([...state.sort((a, b) => (a[label] > b[label]) ? 1 : ((b[label] > a[label]) ? -1 : 0))]))
+        if (activeSort !== label | sortReverse === true) {
+            setSortReverse(false)
+            if (activeSort !== label) setActiveSort(label)
+
+            if (label === 'name') {
+                setCityData(state => ([...state.sort((a, b) => (a[label] > b[label]) ? 1 : -1)]))
+            } else {
+                setCityData(state => [...state.sort((a, b) => a[label][time] - b[label][time])])
+            }
+        }
+        else {
+            setSortReverse(true)
+            if (label === 'name') {
+                setCityData(state => ([...state.sort((a, b) => (b[label] > a[label]) ? 1 : -1)]))
+            } else {
+                setCityData(state => [...state.sort((a, b) => b[label][time] - a[label][time])])
+            }
+        }
+    }
+
+    // Sorting after change date or add new city
+    const manualSort = () => {
+        const label = activeSort;
+        if (sortReverse) {
+            if (label === 'name') {
+                setCityData(state => ([...state.sort((a, b) => (b[label] > a[label]) ? 1 : -1)]))
+            } else {
+                setCityData(state => [...state.sort((a, b) => b[label][time] - a[label][time])])
+            }
         } else {
-            setCityData(state => [...state.sort((a, b) => a[label][time] - b[label][time])])
+            if (label === 'name') {
+                setCityData(state => ([...state.sort((a, b) => (a[label] > b[label]) ? 1 : -1)]))
+            } else {
+                setCityData(state => [...state.sort((a, b) => a[label][time] - b[label][time])])
+            }
         }
     }
 
@@ -63,16 +94,14 @@ const App = () => {
     // Set time and keep sorting order
     const handleTimeSet = (time) => {
         setTime(time)
-        setCityData(state => [...state.sort((a, b) => a[activeSort][time] - b[activeSort][time])])
+        manualSort()
     }
-
-
-
 
     const handlePrefetch = async (city) => {
         setLoading(true)
 
         await handleFetching(city)
+        manualSort()
 
         setLoading(false)
     }
@@ -81,12 +110,12 @@ const App = () => {
         <>
             <CityForm handlePrefetch={handlePrefetch} />
             <Table
-                setActiveSort={setActiveSort}
                 activeSort={activeSort}
                 removeCity={removeCity}
                 handleSort={handleSort}
                 cityData={cityData}
                 time={time}
+                sortReverse={sortReverse}
             />
             <DatePicker times={times} timeIndex={time} handleTimeSet={handleTimeSet} />
         </>
@@ -169,45 +198,44 @@ const Header = () => {
 
 
 // Weather Table
-const Table = ({ cityData, handleSort, removeCity, time, activeSort, setActiveSort }) => {
+const Table = ({ cityData, handleSort, removeCity, time, activeSort, sortReverse }) => {
 
     const cityRows = cityData.map((city, i) => {
-        const { name, max, min } = city
+        const { name, max, min, country } = city
         return (
-            <ul key={i} className="flex relative justify-between">
+            <ul key={i} className="table-block">
                 <li className="font-semibold text-2xl py-2 px-4 flex items-center gap-2 flex-row-reverse">
-                    {name}
+                    {name} ({country})
                     <button onClick={() => removeCity(name)}>
                         <img src={removeIcon} alt="" />
                     </button>
                 </li>
-                <li className="font-semibold text-2xl py-2 px-4 flex-auto text-center absolute right-1/2 translate-x-1/2">{min[time]} °C</li>
+                <li className="font-semibold text-2xl py-2 px-4">{min[time]} °C</li>
                 <li className="font-semibold text-2xl py-2 px-4">{max[time]} °C</li>
             </ul>
         )
     })
 
     const className = 'text-3xl font-semibold py-2 px-4 flex items-center gap-2';
-    const centerClassName = `${className} absolute right-1/2 translate-x-1/2`;
-
-    const imgActiveClass = 'w-5 transition-transform';
-    const imgClass = `${imgActiveClass} -rotate-90`;
+    const imgClassASC = 'w-5 transition-transform';
+    const imgClassDESC = 'w-5 transition-transform -rotate-180';
+    const imgClass = `${imgClassASC} -rotate-90`;
 
 
     const array = [['City', 'name'], ['MinTemp', 'min'], ['MaxTemp', 'max']];
 
     return (
         <div className="w-2/3 mt-8 border p-4 rounded-2xl">
-            <ul className="flex justify-between	relative">
+            <ul className="table-block">
                 {
                     array.map((item, i) => {
                         const name = item[0];
                         const label = item[1];
 
                         return (
-                            <button key={i} onClick={() => handleSort(label)} className={i === 1 ? centerClassName : className}>
+                            <button key={i} onClick={() => handleSort(label)} className={className}>
                                 {name}
-                                <img className={label === activeSort ? imgActiveClass : imgClass} src={dropdown} alt="sort-icon" />
+                                <img className={label === activeSort ? (sortReverse ? imgClassDESC : imgClassASC) : imgClass} src={dropdown} alt="sort-icon" />
                             </button>
                         )
                     })

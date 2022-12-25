@@ -15,3 +15,21 @@ body {
   min-height: 100vh;
   background: linear-gradient(180deg, rgba(4, 4, 128, 1) 2%, rgba(4, 4, 128, 1) 38%, rgba(0, 0, 0, 1) 100%);
 }
+
+@layer components {
+  .table-block {
+    display: grid;
+    grid-template-columns: minmax(250px, auto) 1fr 1fr;
+    gap: 15px;
+    justify-items: center;
+  }
+ 
+  .table-block *:first-child{
+    justify-self: start;
+  }
+  
+  .table-block *:nth-child(2){
+    margin-left: 40px;
+  }
+  
+}

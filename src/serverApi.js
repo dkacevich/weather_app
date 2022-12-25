@@ -6,7 +6,7 @@ const GEO_API_KEY = '1536fbb322702faf3ce7caa2f41f0bbd'
 
 
 export const fetchWeather = async ({lat, lon}) => {
-    const res = await axios.get(`${API_BASE}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&timezone=Europe%2FMoscow`)
+    const res = await axios.get(`${API_BASE}?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Europe%2FMoscow`)
     return res.data
 }
 
