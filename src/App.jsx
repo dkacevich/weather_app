@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchCoordinates, fetchWeather } from "./serverApi.js";
 import spinner from './assets/spinner.svg'
 import removeIcon from './assets/remove.svg'
+import dropdown from './assets/dropdown.svg'
 
 const App = () => {
 
@@ -11,68 +12,88 @@ const App = () => {
     const [cityData, setCityData] = useState([])
     const [time, setTime] = useState(0)
     const [times, setTimes] = useState([])
+    const [activeSort, setActiveSort] = useState('');
     const [loading, setLoading] = useState(true)
 
 
     useEffect(() => {
 
         // fetch Location first, then weather for this location
-        cities.map(async (city) => {
-            const location = await fetchCoordinates(city)
-            const { name, lat, lon } = location[0]
-            const data = await fetchWeather({ lat, lon })
+        Promise.all(
+            cities.map(async (city) => {
+                const location = await fetchCoordinates(city)
+                const { name, lat, lon } = location[0]
+                const data = await fetchWeather({ lat, lon })
 
-            const min = await data.daily.temperature_2m_min
-            const max = await data.daily.temperature_2m_max
-            const times = await data.daily.time
+                const min = await data.daily.temperature_2m_min
+                const max = await data.daily.temperature_2m_max
+                const times = await data.daily.time
 
-            setTimes(times)
-            setCityData(state => [...state, { name, min, max }])
+                setTimes(times)
+                setCityData(state => [...state, { name, min, max }])
+            })
+        ).then(() => {
+            setLoading(false)
         })
-
-        setLoading(false)
 
     }, [])
 
 
     // Sort Function
-    const handleSort = (value) => {
-        console.log('sort');
-        if (value === 'name') {
-            setCityData(state => ([...state.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0))]))
+    const handleSort = (label) => {
+        setActiveSort(label)
+        if (label === 'name') {
+            setCityData(state => ([...state.sort((a, b) => (a[label] > b[label]) ? 1 : ((b[label] > a[label]) ? -1 : 0))]))
         } else {
-            setCityData(state => [...state.sort((a, b) => a[value][time] - b[value][time])])
+            setCityData(state => [...state.sort((a, b) => a[label][time] - b[label][time])])
         }
     }
 
     // Remove City 
     const removeCity = (name) => {
-        console.log('remove')
         setCityData(state => state.filter(city => city.name !== name))
     }
 
+    // Set time and keep sorting order
+    const handleTimeSet = (time) => {
+        setTime(time)
+        setCityData(state => [...state.sort((a, b) => a[activeSort][time] - b[activeSort][time])])
+    }
 
-    // If loading, show Spinnner
+    const content = (
+        <>
+            <Table
+                setActiveSort={setActiveSort}
+                activeSort={activeSort}
+                removeCity={removeCity}
+                handleSort={handleSort}
+                cityData={cityData}
+                time={time}
+            />
+            <DatePicker times={times} timeIndex={time} handleTimeSet={handleTimeSet} />
+        </>
+    )
 
-    if (loading) return <Spinner />
 
     return (
         <div className="flex flex-col items-center text-white">
             <Header />
-            <Table removeCity={removeCity} handleSort={handleSort} cityData={cityData} time={time} />
-            <DatePicker times={times} timeIndex={time} setTime={setTime} />
+            {
+                // if (loading) show <Spinner /> else show Content
+                loading ? <Spinner /> : content
+            }
         </div>
     )
 }
 
 
 // Date picker Component
-const DatePicker = ({ times, setTime, timeIndex }) => {
+const DatePicker = ({ times, handleTimeSet, timeIndex }) => {
     const dates = times.map((time, i) => {
         const activeClass = timeIndex == i ? 'bg-white text-black' : null
-    
+
         return (
-            <div key={i} onClick={() => setTime(i)} className={`font-bold rounded-md border-2	 py-1 px-4  cursor-pointer ${activeClass}`}>{time}</div>
+            <div key={i} onClick={() => handleTimeSet(i)} className={`font-bold rounded-md border-2	 py-1 px-4  cursor-pointer ${activeClass}`}>{time}</div>
         )
     })
 
@@ -97,7 +118,7 @@ const Header = () => {
 
 
 // Weather Table
-const Table = ({ cityData, handleSort, removeCity, time }) => {
+const Table = ({ cityData, handleSort, removeCity, time, activeSort, setActiveSort }) => {
 
     const cityRows = cityData.map((city, i) => {
         const { name, max, min } = city
@@ -109,18 +130,37 @@ const Table = ({ cityData, handleSort, removeCity, time }) => {
                         <img src={removeIcon} alt="" />
                     </button>
                 </li>
-                <li className="font-semibold text-2xl py-2 px-4 flex-auto text-center absolute right-1/2 translate-x-1/2">{min[time]}</li>
-                <li className="font-semibold text-2xl py-2 px-4">{max[time]}</li>
+                <li className="font-semibold text-2xl py-2 px-4 flex-auto text-center absolute right-1/2 translate-x-1/2">{min[time]} °C</li>
+                <li className="font-semibold text-2xl py-2 px-4">{max[time]} °C</li>
             </ul>
         )
     })
 
+    const className = 'text-3xl font-semibold py-2 px-4 flex items-center gap-2';
+    const centerClassName = `${className} absolute right-1/2 translate-x-1/2`;
+
+    const imgActiveClass = 'w-5 transition-transform';
+    const imgClass = `${imgActiveClass} -rotate-90`;
+
+
+    const array = [['City', 'name'], ['MinTemp', 'min'], ['MaxTemp', 'max']];
+
     return (
         <div className="w-2/3 mt-8 border p-4 rounded-2xl">
             <ul className="flex justify-between	relative">
-                <button onClick={() => handleSort('name')} className="text-3xl font-semibold py-2 px-4">City</button>
-                <button onClick={() => handleSort('min')} className="text-3xl font-semibold py-2 px-4 py-2 px-4 flex-auto text-center absolute right-1/2 translate-x-1/2">MinTemp</button>
-                <button onClick={() => handleSort('max')} className="text-3xl font-semibold py-2 px-4">MaxTemp</button>
+                {
+                    array.map((item, i) => {
+                        const name = item[0];
+                        const label = item[1];
+                              
+                        return (
+                            <button key={i} onClick={() => handleSort(label)} className={i === 1 ? centerClassName : className}>
+                                {name}
+                                <img className={label === activeSort ? imgActiveClass : imgClass} src={dropdown} alt="sort-icon" />
+                            </button>
+                        )
+                    })
+                }
             </ul>
             {cityRows}
         </div>
@@ -131,7 +171,9 @@ const Table = ({ cityData, handleSort, removeCity, time }) => {
 // Loader
 const Spinner = () => {
     return (
-        <img src={spinner} alt="" />
+        <div className="flex justify-center">
+            <img src={spinner} alt="" />
+        </div>
     )
 }
 
